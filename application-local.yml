@@ -40,7 +40,7 @@ marketing:
     campaign:
         carPowerOTHRules:
             -
-                name: DEV TEST CHANGE
+                name: DEV again CHANGE
                 startDateTime: 2016-10-31 00:00:01
                 # a longer term end date for DEV testing
                 endDateTime: 2020-12-31 00:00:01
