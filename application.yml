@@ -1,0 +1,313 @@
+# BANNER
+banner:
+    charset: UTF-8 # Banner file encoding.
+    location: classpath:banner.txt
+
+# IDENTITY
+spring:
+    application:
+        name: pricingApi
+
+# EMBEDDED SERVER CONFIGURATION
+server:
+    servlet-path: /price/v1
+    port: 9005
+    #session.timeout: 30 # Session timeout in seconds
+    compression.enabled: true # If response compression is enabled.
+    compression.mime-types: application/json # Comma-separated list of MIME types that should be compressed.
+
+# MANAGEMENT HTTP SERVER
+management:
+    context-path: /admin
+    port: 9006
+
+# LOGGING
+logging:
+    file: /var/log/hotwire/pricing_service/dev-server.log
+    config: logback-dev.xml
+
+ming:
+    serviceURL:
+        hotel: http://dev-pricing-hotel-ming-ecs.aws.hotwire.com/price/v1/hotel-pricing
+        car: http://dev-pricing-car-ming-ecs.aws.hotwire.com/price/v1/car-pricing
+
+mab:
+    # useMABforVT can be used to enable or disable MAB for a given pgood type
+    # If set to true, MAB calls will be made during pricing otherwise no calls
+    # H for hotel, C for Car
+    useMABforVT:
+        hotel: false
+        car: false
+    # this is an override bucket name. Case: shouldUseMABforVT=false and pricingRequest.getModelId=MAB, NPE will use VT
+    overrideBucketName: MAB
+
+vt:
+    serviceURL: http://dev-pricing-vt-service-ecs.aws.hotwire.com/VT
+    # fallBack VT Name - allows us to build circuit-breaker around VT calls. If the VT call(s) fail(s) a local VT response is generated and used for pricing
+    fallBackVTName: FALLBACK
+    hotel:
+        appId: NPE_HOTEL
+        vtName: FIRST-WORLD-HOTEL-7351
+    car:
+        appId: NPE_CAR
+        vtName: CADILLAC-CT6
+    feeTests:
+        carFee:
+            appId: NPE_CAR_V2
+            vtName: FLAT-FEE
+            control: CFF00
+        hotelFee:
+            appId: NPE_HOTEL_V2
+            vtName: FLAT-FEE
+            control: HFF00
+    hotelBedType:
+        appId: NPE_HOTEL_BED_TYPE
+        vtName: BED-TYPE
+        control: BT0
+
+restClient:
+    connectionTimeoutMilli: 100
+    readTimeoutMilli: 100
+    httpMaxConnTotal: 10
+    httpMaxConnPerRoute: 10
+
+kivas:
+    serviceURL: http://devkivasweb01.aws.hotwire.com:8080/kafka/pricing-service-logs
+    enableLogging: true
+    connectionTimeout: 1000
+    socketTimeout: 1000
+
+restTemplate:
+    connectionTimeout: 500
+    readTimeout: 500
+
+newPricingEngine:
+    # fallBack bucket Name - allows us to build circuit-breaker around VT calls. If the VT call(s) fail(s) a local VT response is generated and used for pricing
+    # this is configured to use the most sucessful bucket. Please check with Product owner and Data-Science folks to any updates in the setting
+    fallbackBucketName: # covers clientId=0 and clientId=-1
+        hotel: A124
+        car: C78
+    # Should use post processing engines after MING
+    shouldUsePostProcessingEngines:
+        hotel: true
+        car: true
+
+postProcessingEngines:
+    hotel:
+        shouldOverrideVTInfo: false # Since we can run only 1 pricing test at a time for now, toggle for price_rule_id
+        flatfeebucketinfo:
+            # To keep config clean not adding whether the fee is % or an absolute value. Let code do that magic
+            HFF01: 0.115 # 11.5% In the java code it will be 11.5% of base + MU
+            HFF02: 9.00 # Flat $9
+            HFF03: 5.00 # Flat $5
+            HFF04: 0.00 # NO FEE! Congrats!!
+        flatfeeControlbucket: HFF01
+    car:
+        serviceFeesValue: 0.20 # 20% of base cost
+        serviceFeesMaxValue: 0.98 # Cap at (lowPub*0.98 - baseCost - MU - fixedFee)
+        shouldOverrideVTInfo: false # Since we can run only 1 pricing test at a time for now, toggle for price_rule_id
+        flatfeebucketinfo:
+            CFF06: 3.35
+            CFF10: 3.00
+            CFF11: 2.50
+            CFF12: 2.00
+            CFF13: 1.50
+            CFF14: 1.00
+        highBaseCostFlatFeebucketInfo:
+            CFF06: 3.35 # CFF06 is the current control so NO high base cost treatment, hence value is the same as flatfeebucketinfo.CFF06
+            CFF10: 3.75
+            CFF11: 4.25
+            CFF12: 4.75
+            CFF13: 5.25
+            CFF14: 5.75
+        flatfeeControlbucket: CFF06
+        minimumBaseRateCutOff: 15.00
+
+priceBasedSuppression:
+    hotel:
+        priceBasedSuppressionEnabled: true
+        vtInfo:
+            appId: NPE_HOTEL_V3
+            vtName: GST-ZERO-PCT
+        shouldOverrideVTInfo: true # Since we can run only 1 pricing test at a time for now, toggle for price_rule_id
+        minGuaranteedSavingsByVersionId:
+            SGS00: -1000.00 # Default bucket. Negative number simulates no minimum guaranteed savings
+            SGS01: 0.00 # 00% min savings | SGS = Suppression by Guaranteed Savings
+            SGS02: 0.05 # 05% min savings
+            SGS03: 0.10 # 10% min savings
+            SGS04: 0.15 # 15% min savings
+        minGuaranteedSavingsDefault: -1000.00 # In case VT call fails
+        controlbucket: SGS00
+
+ming.client.shouldUseGhostHost:
+    # this MUST be ALWAYS FALSE here. Use application-<ENV>.yml override yml to enable ghost host; EXCEPT in application-PROD.yml
+    car: false
+    hotel: false
+
+fencedpricing:
+    insiderservice:
+        enablecall:
+            hotel: true
+            # CAR is hard-coded in JAVA class on purpose
+        # URL to call Insider Service. Fomat=> <http|https><host:port>/v1/customers/<email>
+        # InsiderServiceClientImpl takes care of concatinating the email to this endpoint.
+        # DO NOT append the email address in yml file
+        serviceURL: http://dev-insider-service.aws.hotwire.com/v1/customers/
+        # this is match with MING connectionTimeoutMilli
+        connectionTimeoutMilli: 1900
+        # this is match with MING readTimeoutMilli
+        readTimeoutMilli: 1900
+        # this is derived from tp99 of MING latency, which is 500ms, so adding a buffer of 200ms
+        invokeTimeOutMilli: 700
+        httpMaxConnTotal: 10
+        httpMaxConnPerRoute: 10
+        bucketName: IS00
+
+redis:
+    host: devpromotrackercache.aws.hotwire.com
+    port: 6379
+    pubsubchannels:
+      - SALE_CONFIG
+      - SALE_STATUS
+      - TOTAL_SPEND
+      - ROOM_NIGHTS_SOLD
+      - ROOM_NIGHTS_SOLD_BY_HOTEL
+    maxTotalConnections: 20
+    maxWaitMillis: 1000
+    maxIdle: 10
+    minIdle: 1
+    testOnBorrow: true
+    testOnReturn: true
+
+metrics:
+    apiKey: a801af1ce6c88911cb47d9f6085268fc
+    host: ${LOCAL_IP}
+    tags:
+        - "env:pricing-service-${SPRING_PROFILES_ACTIVE}"
+        - "pricing-service-container-id:${PRICING_SERVICE_CONTAINER_TAG}"
+    periodSeconds: 10 # convert into seconds. e.g. 1 hour = 60*60 seconds and so on
+    prefix: pricing-service
+    datadogReporterEnabled: true # DataDog
+    consoleReporterEnabled: false # enable only in lower env - DO *NOT* TURN ON IN PROD ENV
+    jmxReporterEnabled: false # enable only in lower env - DO *NOT* TURN ON IN PROD ENV
+    slf4jReporterEnabled: false # enable only in lower env - DO *NOT* TURN ON IN PROD ENV
+
+# ----------------------------------------
+# Marketing campaign
+marketing:
+    campaign:
+        hotelPowerOTHRules:
+            -
+                name: THIS IS FOR TESTING-TO UNBLOCK INDIA TEAM
+                startDateTime: 2017-02-27 00:00:01
+                endDateTime: 2017-12-30 00:00:01 # End in December
+                nid: N-OTH-TEST
+                vid: V-OTH-TEST
+                discountOffer: 0.00 # ZERO discount
+            -
+                name: DPD 2018 V1                   #DPD and OTH are similar, technically the difference is the nid & vid
+                startDateTime: 2017-12-19 00:00:01  #Enabled since 2017 for testing purpose
+                endDateTime: 2018-12-31 23:59:59    #... and runs for the whole year
+                nid: N-DPD
+                vid: V-HS-DPD-001
+                discountOffer: 0.50
+            -
+                name: 07/25/2018 Power Hotel V1
+                startDateTime: 2018-07-19 00:00:01
+                endDateTime: 2018-07-26 00:00:01
+                nid: N-OTH-072518
+                vid: V-OTH-072518-V1
+                discountOffer: 0.50
+            -
+                name: 07/25/2018 Power Hotel V2
+                startDateTime: 2018-07-19 00:00:01
+                endDateTime: 2018-07-26 00:00:01
+                nid: N-OTH-072518
+                vid: V-OTH-072518-V2
+                discountOffer: 0.50
+            -
+                name: 07/25/2018 Power Hotel V3
+                startDateTime: 2018-07-19 00:00:01
+                endDateTime: 2018-07-26 00:00:01
+                nid: N-OTH-072518
+                vid: V-OTH-072518-V3
+                discountOffer: 0.50
+            -
+                name: 07/25/2018 Power Hotel V4
+                startDateTime: 2018-07-19 00:00:01
+                endDateTime: 2018-07-26 00:00:01
+                nid: N-OTH-072518
+                vid: V-OTH-072518-V4
+                discountOffer: 0.50
+
+        carPowerOTHRules:
+        # Please add the same configuration in non-prod yml files
+        # This will help us to catch any errors in the configuration by running the tests
+            -
+                name: 7/25/2018 Power Car V1
+                startDateTime: 2018-07-19 00:00:01
+                endDateTime: 2018-07-26 00:00:01
+                nid: N-OTH-072518
+                vid: V-OTH-072518-V1
+                discountOffer: 0.50
+            -
+                name: 7/25/2018 Power Car V2
+                startDateTime: 2018-07-19 00:00:01
+                endDateTime: 2018-07-26 00:00:01
+                nid: N-OTH-072518
+                vid: V-OTH-072518-V2
+                discountOffer: 0.50
+            -
+                name: 7/25/2018 Power Car V3
+                startDateTime: 2018-07-19 00:00:01
+                endDateTime: 2018-07-26 00:00:01
+                nid: N-OTH-072518
+                vid: V-OTH-072518-V3
+                discountOffer: 0.50
+            -
+                name: 7/25/2018 Power Car V4
+                startDateTime: 2018-07-19 00:00:01
+                endDateTime: 2018-07-26 00:00:01
+                nid: N-OTH-072518
+                vid: V-OTH-072518-V4
+                discountOffer: 0.50
+
+    supplycampaign:
+        declarativeRules:
+            -
+                name: New to Hotwire -  0% Margin - Request Date 12/05/2017
+                startDateTime: 2017-12-06 20:00:00
+                endDateTime: 2018-01-05 19:59:59
+                minimumNRD: 0
+                discountOffer: 1.00
+                hotelIds: 145760,28911,836,4484
+            -
+                name: Smart Choice - 50% Margin - Request Date 12/05/2017
+                startDateTime: 2017-12-06 20:00:00
+                endDateTime: 2018-01-05 19:59:59
+                minimumNRD: 0
+                discountOffer: 0.50
+                hotelIds: 512,535,63418,5369,6413,6549,6833,18075,32132,59693,334867
+            -
+                name: New to Hotwire -  0% Margin - Request Date 12/19/2017
+                startDateTime: 2017-12-21 20:00:00
+                endDateTime: 2018-01-20 19:59:59
+                minimumNRD: 0
+                discountOffer: 1.00
+                hotelIds: 302806,26813,17794
+            -
+                name: Smart Choice - 50% Margin - Request Date 12/19/2017
+                startDateTime: 2017-12-21 20:00:00
+                endDateTime: 2018-01-20 19:59:59
+                minimumNRD: 0
+                discountOffer: 0.50
+                hotelIds: 3020,944,771,65689,21160,5352
+            -
+                name: New to Hotwire -  0% Margin - Request Date 05/31/2018
+                startDateTime: 2018-06-06 20:00:00
+                endDateTime: 2018-07-05 19:59:59
+                minimumNRD: 0
+                discountOffer: 1.00
+                hotelIds: 13443,27503,13422,13498,15727,13418,20915,13429,8274,5766,15171
+
+# ----------------------------------------

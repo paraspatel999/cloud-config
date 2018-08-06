@@ -1,0 +1,77 @@
+# LOGGING
+logging:
+    # file: log/hotwire/pricing_service/local-server.log
+    file: /var/logs/hotwire/pricing_service/local-server.log
+ming:
+    serviceURL:
+        hotel: http://dev-pricing-hotel-ming-ecs.aws.hotwire.com/price/v1/hotel-pricing
+        car: http://dev-pricing-car-ming-ecs.aws.hotwire.com/price/v1/car-pricing
+        # car: http://localhost:9051/price/v1/car-pricing
+
+mab:
+    useMABforVT:
+        hotel: true
+
+vt:
+    serviceURL: http://dev-pricing-vt-service-ecs.aws.hotwire.com/VT
+kivas:
+    serviceURL: http://devkivasweb01.aws.hotwire.com:8080/kafka/pricing-service-logs
+
+newPricingEngine:
+    shouldUsePostProcessingEngines:
+        hotel: true
+        car: true
+
+fencedpricing:
+    insiderservice:
+        serviceURL: https://insider-service.qa.hotwire.com/v1/customers/
+        # serviceURL: https://insider-service.hotwire.com/v1/customers/
+        # Local, Dev and QA tend to be slower so keeping this more than that of the PROD value
+        invokeTimeOutMilli: 2000
+        connectionTimeoutMilli: 5000
+        readTimeoutMilli: 5000
+
+metrics:
+    consoleReporterEnabled: true # enable only on lower env - mostly local
+    jmxReporterEnabled: true # enable only on lower env - mostly Dev and QA
+
+# Marketing campaign DEV override with FAKE NID/VID for DEV TESTING
+marketing:
+    campaign:
+        carPowerOTHRules:
+            -
+                name: DEV TEST CAR
+                startDateTime: 2016-10-31 00:00:01
+                # a longer term end date for DEV testing
+                endDateTime: 2020-12-31 00:00:01
+                nid: N-OTH-2020
+                vid: V-OTH-2020
+                discountOffer: 0.50
+            -
+                name: 7/25/2018 Power Car V1
+                startDateTime: 2018-07-19 00:00:01
+                endDateTime: 2018-07-26 00:00:01
+                nid: N-OTH-072518
+                vid: V-OTH-072518-V1
+                discountOffer: 0.50
+            -
+                name: 7/25/2018 Power Car V2
+                startDateTime: 2018-07-19 00:00:01
+                endDateTime: 2018-07-26 00:00:01
+                nid: N-OTH-072518
+                vid: V-OTH-072518-V2
+                discountOffer: 0.50
+            -
+                name: 7/25/2018 Power Car V3
+                startDateTime: 2018-07-19 00:00:01
+                endDateTime: 2018-07-26 00:00:01
+                nid: N-OTH-072518
+                vid: V-OTH-072518-V3
+                discountOffer: 0.50
+            -
+                name: 7/25/2018 Power Car V4
+                startDateTime: 2018-07-19 00:00:01
+                endDateTime: 2018-07-26 00:00:01
+                nid: N-OTH-072518
+                vid: V-OTH-072518-V4
+                discountOffer: 0.50
