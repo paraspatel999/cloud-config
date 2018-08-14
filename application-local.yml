@@ -4,7 +4,7 @@ marketing:
     campaign:
         carPowerOTHRules:
             -
-                name: DEVTest again CHANGE1
+                name: DEVTest tech talk demo
                 startDateTime: 2016-10-31 00:00:01
                 # a longer term end date for DEV testing
                 endDateTime: 2020-12-31 00:00:01
@@ -21,7 +21,7 @@ marketing:
             -
                 name: 7/25/2018 Power Car V2
                 startDateTime: 2018-07-19 00:00:01
-                endDateTime: 2018-07-26 00:00:01
+                endDateTime: 2018-09-26 00:00:01
                 nid: N-OTH-072518
                 vid: V-OTH-072518-V2
                 discountOffer: 0.50
