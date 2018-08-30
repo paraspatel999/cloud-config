@@ -4,7 +4,7 @@ marketing:
     campaign:
         carPowerOTHRules:
             -
-                name: DEVTest tech talk demo
+                name: DEVTest tech talk presentation
                 startDateTime: 2016-10-31 00:00:01
                 # a longer term end date for DEV testing
                 endDateTime: 2020-12-31 00:00:01
